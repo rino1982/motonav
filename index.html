@@ -378,6 +378,7 @@ async function doSearch(q){
   }catch(e){el.innerHTML='<div class="search-result-item" style="color:#e74c3c">Search failed</div>';}
 }
 document.getElementById('search-results').addEventListener('click',function(e){
+  e.stopPropagation();
   var item=e.target.closest('[data-idx]');
   if(!item||!window._sr)return;
   var d=window._sr[parseInt(item.dataset.idx)];
