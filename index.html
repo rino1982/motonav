@@ -386,9 +386,8 @@ document.getElementById('search-results').addEventListener('click',function(e){
 function selectDest(lat,lng,name){
   pendingDest={lat:+lat,lng:+lng,name:name};
   document.getElementById('dest-input').value=name.split(',')[0];
-  // Show save-as-favourite row under input
+  // Show save-as-favourite row — do NOT call hideResults here, the row IS the results panel
   showSaveFavRow(lat,lng,name);
-  hideResults();
   updateGoBtn();
 }
 function showSaveFavRow(lat,lng,name){
