@@ -9,7 +9,6 @@
 <title>MotoNav</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; overflow:hidden; }
@@ -37,145 +36,825 @@ body { background:#111; color:#fff; font-family:-apple-system,BlinkMacSystemFont
 .mode-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; padding:0 1.5rem; margin-bottom:0.9rem; flex-shrink:0; }
 .mode-card { background:#1c1c1e; border-radius:13px; padding:0.75rem 0.35rem; text-align:center; cursor:pointer; border:2px solid transparent; transition:border-color .15s,background .15s; }
 .mode-card.active { border-color:#fff; background:#28282c; }
+.mode-icon { font-size:1.6rem; display:block; margin-bottom:3px; }
+.mode-name { font-size:0.8rem; font-weight:700; display:block; }
+.mode-desc { font-size:0.62rem; color:#777; display:block; margin-top:2px; line-height:1.3; }
 
+/* FAVOURITES */
 .favs-section { padding:0 1.5rem; margin-bottom:0.7rem; flex-shrink:0; }
+.favs-row { display:flex; gap:7px; flex-wrap:wrap; }
+.fav-chip { background:#1c1c1e; border:1.5px solid #2a2a2a; border-radius:20px; padding:5px 12px; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.fav-chip:active { background:#28282c; }
+.fav-chip .fav-del { color:#555; font-size:0.9rem; margin-left:2px; }
+.fav-empty { font-size:0.75rem; color:#444; font-style:italic; }
 
+/* WAYPOINTS LIST */
+.waypoints-section { padding:0 1.5rem; margin-bottom:0.6rem; flex-shrink:0; }
+.waypoint-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+.wp-num { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; flex-shrink:0; }
+.wp-label { flex:1; font-size:0.82rem; color:#ccc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wp-del { background:none; border:none; color:#555; font-size:1.1rem; cursor:pointer; padding:0 4px; flex-shrink:0; }
+.wp-del:active { color:#e74c3c; }
+
+/* DEST INPUT */
 .dest-section { padding:0 1.5rem; margin-bottom:0.7rem; flex-shrink:0; }
 .dest-input-wrap { background:#1c1c1e; border-radius:13px; display:flex; align-items:center; padding:0 0.9rem; gap:9px; }
 .dest-input-wrap input { background:none; border:none; outline:none; color:#fff; font-size:0.95rem; padding:0.85rem 0; width:100%; }
-
+.dest-input-wrap input::placeholder { color:#555; }
 .search-results { background:#1c1c1e; border-radius:13px; margin-top:5px; overflow:hidden; max-height:170px; overflow-y:auto; }
 .search-result-item { padding:0.8rem 1rem; border-bottom:.5px solid #2a2a2a; cursor:pointer; font-size:0.85rem; }
+.search-result-item:last-child { border-bottom:none; }
 .search-result-item:active { background:#2a2a2e; }
+.res-name { font-weight:600; color:#fff; }
+.res-addr { font-size:0.7rem; color:#777; margin-top:2px; line-height:1.3; }
+/* Save fav row inside search result */
+.save-fav-row { padding:0.65rem 1rem; background:#161618; display:flex; align-items:center; gap:8px; cursor:pointer; border-top:.5px solid #2a2a2a; }
+.save-fav-row:active { background:#1e1e20; }
+.save-fav-row span { font-size:0.78rem; color:#888; }
+.save-fav-row input { background:none; border:none; outline:none; color:#fff; font-size:0.82rem; flex:1; padding:0; }
+.save-fav-row input::placeholder { color:#555; }
 
-.save-fav-row { padding:0.65rem 1rem; background:#161618; display:flex; align-items:center; gap:8px; }
-.save-fav-row input { background:none; border:none; outline:none; color:#fff; flex:1; }
-.save-fav-row span { color:#3b82f6; font-weight:700; cursor:pointer; white-space:nowrap; }
-
+/* BUTTONS ROW */
 .btn-row { display:flex; gap:8px; padding:0 1.5rem; margin-bottom:0.5rem; flex-shrink:0; }
-.go-btn { background:#fff; color:#111; border:none; border-radius:13px; font-size:0.95rem; font-weight:700; padding:0.85rem 0; cursor:pointer; flex:2; }
+.add-stop-btn { background:#1c1c1e; color:#fff; border:1.5px solid #333; border-radius:13px; font-size:0.88rem; font-weight:600; padding:0.85rem 0; cursor:pointer; flex:1; }
+.add-stop-btn:active { background:#28282c; }
+.go-btn { background:#fff; color:#111; border:none; border-radius:13px; font-size:0.95rem; font-weight:700; padding:0.85rem 0; cursor:pointer; flex:2; transition:opacity .15s,transform .1s; }
+.go-btn:active { transform:scale(.98); }
+.go-btn:disabled { opacity:.25; cursor:default; transform:none; }
 
 .status-bar { padding:0.4rem 1.5rem 0.5rem; font-size:0.72rem; color:#555; display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.gps-dot { width:7px; height:7px; border-radius:50%; background:#e74c3c; flex-shrink:0; }
+.gps-dot.ok { background:#2ecc71; animation:gpspulse 2s infinite; }
+@keyframes gpspulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+/* MAP PREVIEW */
+#screen-map { position:relative; }
+.map-topbar { padding:0.8rem 1.5rem 0.45rem; display:flex; align-items:center; gap:10px; background:#111; flex-shrink:0; border-bottom:.5px solid #222; }
+.map-back-btn { background:#2a2a2e; border:none; color:#fff; border-radius:9px; padding:6px 13px; font-size:0.82rem; font-weight:600; cursor:pointer; }
+.map-title { font-size:0.9rem; font-weight:700; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#preview-map { flex:1; min-height:0; }
+.route-options { display:flex; flex-direction:column; gap:5px; padding:0.6rem 1rem 0.35rem; background:#111; flex-shrink:0; }
+.route-option { background:#1c1c1e; border-radius:11px; padding:0.7rem 0.9rem; display:flex; align-items:center; gap:11px; cursor:pointer; border:2px solid transparent; transition:border-color .15s; }
+.route-option.selected { border-color:#fff; }
+.route-badge { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.route-info .ri-title { font-size:0.85rem; font-weight:700; }
+.route-info .ri-sub { font-size:0.72rem; color:#888; margin-top:1px; }
+.start-route-btn { margin:0.5rem 1rem 1.1rem; background:#fff; color:#111; border:none; border-radius:13px; font-size:1rem; font-weight:700; padding:0.88rem; cursor:pointer; flex-shrink:0; }
+
+/* NAV */
+.nav-topbar { display:flex; align-items:center; padding:0.7rem 0.9rem 0.25rem; flex-shrink:0; gap:7px; }
+.nav-mode-badge { background:#2a2a2e; border-radius:20px; padding:4px 11px; font-size:0.75rem; font-weight:700; color:#ccc; white-space:nowrap; flex-shrink:0; }
+.nav-dest-label { font-size:0.72rem; color:#555; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+.speed-limit-badge { background:#fff; color:#111; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; flex-direction:column; border:4px solid #c0392b; flex-shrink:0; }
+.speed-limit-badge.gone { display:none; }
+.slb-num { font-size:0.95rem; font-weight:900; line-height:1; }
+.slb-unit { font-size:0.4rem; font-weight:700; color:#555; line-height:1.3; }
+
+/* SCROLLABLE STEPS */
+.steps-container { flex:1; padding:0.35rem 0.75rem; display:flex; flex-direction:column; gap:6px; overflow-y:auto; overflow-x:hidden; min-height:0; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; }
+.steps-container::-webkit-scrollbar { display:none; }
+/* Scroll hint shown when user has scrolled down */
+.scroll-hint { position:absolute; top:0; left:0; right:0; background:linear-gradient(to bottom,rgba(17,17,17,.9),transparent); height:36px; pointer-events:none; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:#666; z-index:10; }
+
+.step-card { border-radius:15px; padding:0.8rem 0.95rem; display:flex; align-items:center; gap:0.8rem; flex-shrink:0; }
+.step-card.s0 { background:#fff; color:#111; }
+.step-card.s1 { background:#2a2a2e; color:#fff; }
+.step-card.s2 { background:#1e1e22; color:#ccc; }
+.step-card.s3 { background:#171719; color:#999; }
+/* Sizes via inline style set in renderSteps */
+.step-body { flex:1; min-width:0; }
+.step-dist { font-size:0.7rem; opacity:.6; margin-bottom:2px; font-weight:600; }
+.step-card.s0 .step-dist { font-size:0.82rem; opacity:.65; }
+.step-instr { font-size:0.82rem; font-weight:500; line-height:1.3; }
+.step-card.s0 .step-instr { font-size:1.15rem; font-weight:700; line-height:1.25; }
+
+/* Waypoint separator inside step list */
+.step-waypoint { background:#1a1a2e; border:1.5px solid #3b82f6; border-radius:10px; padding:0.5rem 0.9rem; font-size:0.78rem; color:#60a5fa; font-weight:600; flex-shrink:0; display:flex; align-items:center; gap:8px; }
+
+/* Bottom bar — adapts columns via JS class */
+.nav-bottombar { padding:0.5rem 0.75rem 1.3rem; display:grid; gap:6px; flex-shrink:0; border-top:.5px solid #222; align-items:center; }
+.nav-bottombar.cols4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+.nav-bottombar.cols5 { grid-template-columns:1fr 1fr 1fr 1fr 1fr; }
+.nav-stat { text-align:center; }
+.nav-stat-val { font-size:1.25rem; font-weight:700; line-height:1; }
+.nav-stat-label { font-size:0.58rem; color:#666; margin-top:3px; text-transform:uppercase; letter-spacing:.4px; }
+.nav-stop-btn { background:#c0392b; color:#fff; border:none; border-radius:11px; padding:0.7rem 0.25rem; font-size:0.82rem; font-weight:700; cursor:pointer; width:100%; }
+
+.overlay { position:absolute; inset:0; background:rgba(0,0,0,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.9rem; text-align:center; padding:2rem; z-index:200; }
+.overlay-icon { font-size:3.2rem; }
+.overlay-title { font-size:1.7rem; font-weight:700; }
+.overlay-sub { color:#888; font-size:0.9rem; line-height:1.4; max-width:280px; }
+.overlay-btn { background:#fff; color:#111; border:none; border-radius:13px; font-size:0.95rem; font-weight:700; padding:.8rem 2.2rem; cursor:pointer; margin-top:.4rem; }
+
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(17,17,17,.3); border-top-color:#111; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:6px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.leaflet-tile { filter:brightness(.85) contrast(1.1) saturate(.75); }
 </style>
 </head>
-
 <body>
 
+<!-- ══ HOME ══ -->
 <div id="screen-home" class="screen">
-
   <div class="home-header">
-    <div><h1>🏍️ MotoNav</h1><p>v1.6 · GPS navigator for riders</p></div>
+    <div><h1>🏍️ MotoNav</h1><p>v1.6 &nbsp;·&nbsp; GPS navigator for riders</p></div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleSettings()" title="Settings">⚙️</button>
+      <button class="icon-btn" onclick="location.reload()" title="Refresh">🔄</button>
+    </div>
   </div>
 
-  <p class="section-label">Destination</p>
+  <div class="settings-panel hidden" id="settings-panel">
+    <div class="settings-row">
+      <label>Distance &amp; Speed</label>
+      <div class="toggle-wrap">
+        <div class="toggle-opt active" id="unit-km" onclick="setUnit('km')">km / km/h</div>
+        <div class="toggle-opt" id="unit-mi" onclick="setUnit('mi')">mi / mph</div>
+      </div>
+    </div>
+  </div>
 
+  <p class="section-label">Ride mode</p>
+  <div class="mode-grid">
+    <div class="mode-card active" onclick="selectMode('quick',this)">
+      <span class="mode-icon">🚀</span><span class="mode-name">Quick</span><span class="mode-desc">Fastest route</span>
+    </div>
+    <div class="mode-card" onclick="selectMode('panoramic',this)">
+      <span class="mode-icon">🏔️</span><span class="mode-name">Panoramic</span><span class="mode-desc">Scenic roads</span>
+    </div>
+    <div class="mode-card" onclick="selectMode('sport',this)">
+      <span class="mode-icon">🏁</span><span class="mode-name">Sport</span><span class="mode-desc">Curvy backroads</span>
+    </div>
+  </div>
+
+  <!-- FAVOURITES -->
+  <p class="section-label">Favourites</p>
+  <div class="favs-section"><div class="favs-row" id="favs-row"><span class="fav-empty">No favourites yet — save a destination below</span></div></div>
+
+  <!-- WAYPOINTS (built up as user adds stops) -->
+  <div class="waypoints-section hidden" id="waypoints-section">
+    <p class="section-label" style="padding:0;margin-bottom:0.45rem;">Route stops</p>
+    <div id="waypoints-list"></div>
+  </div>
+
+  <!-- SEARCH -->
+  <p class="section-label" id="dest-label">Destination</p>
   <div class="dest-section">
     <div class="dest-input-wrap">
-      <input type="text" id="dest-input" placeholder="Where to?" oninput="onDestInput()"/>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="dest-input" placeholder="Where to?" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onDestInput()"/>
     </div>
     <div class="search-results hidden" id="search-results"></div>
   </div>
 
   <div class="btn-row">
-    <button class="go-btn" id="go-btn" disabled>Preview Route</button>
+    <button class="add-stop-btn" id="add-stop-btn" disabled onclick="addStop()">+ Add stop</button>
+    <button class="go-btn" id="go-btn" disabled onclick="planRoute()">Preview Route</button>
   </div>
+  <div class="status-bar">
+    <div class="gps-dot" id="gps-dot"></div>
+    <span id="status-text">Acquiring GPS…</span>
+  </div>
+</div>
 
+<!-- ══ MAP PREVIEW ══ -->
+<div id="screen-map" class="screen hidden">
+  <div class="map-topbar">
+    <button class="map-back-btn" onclick="backToHome()">← Back</button>
+    <div class="map-title" id="map-title">Choose your route</div>
+  </div>
+  <div id="preview-map"></div>
+  <div class="route-options" id="route-options"></div>
+  <button class="start-route-btn" onclick="confirmRoute()">Start Ride →</button>
+</div>
+
+<!-- ══ NAV ══ -->
+<div id="screen-nav" class="screen hidden" style="position:relative;">
+  <div class="nav-topbar">
+    <div class="nav-mode-badge" id="nav-mode-label">🚀 Quick</div>
+    <div class="nav-dest-label" id="nav-dest-label"></div>
+    <div class="speed-limit-badge gone" id="speed-limit-badge">
+      <div class="slb-num" id="slb-num">50</div>
+      <div class="slb-unit" id="slb-unit">km/h</div>
+    </div>
+  </div>
+  <div class="steps-container" id="steps-container"></div>
+  <div class="nav-bottombar cols4" id="nav-bottombar">
+    <div class="nav-stat"><div class="nav-stat-val" id="stat-dist">—</div><div class="nav-stat-label">total left</div></div>
+    <div class="nav-stat" id="stat-nextstop-cell" style="display:none"><div class="nav-stat-val" id="stat-nextstop">—</div><div class="nav-stat-label">next stop</div></div>
+    <div class="nav-stat"><div class="nav-stat-val" id="stat-eta">—</div><div class="nav-stat-label">arrival</div></div>
+    <div class="nav-stat"><div class="nav-stat-val" id="stat-speed">0</div><div class="nav-stat-label" id="speed-label">km/h</div></div>
+    <div class="nav-stat"><button class="nav-stop-btn" onclick="stopNavigation()">■ Stop</button></div>
+  </div>
 </div>
 
 <script>
-
 var NOMINATIM='https://nominatim.openstreetmap.org/search';
+var OVERPASS='https://overpass-api.de/api/interpreter';
+var ADVANCE_M=40;
+var ROUTE_COLORS=['#3b82f6','#22c55e','#f97316'];
+var WP_COLORS=['#22c55e','#f97316','#a855f7','#ec4899','#ef4444'];
+var OSRM={
+  quick:'https://router.project-osrm.org/route/v1/driving/',
+  panoramic:'https://router.project-osrm.org/route/v1/cycling/',
+  sport:'https://router.project-osrm.org/route/v1/driving/'
+};
+var MODES={quick:{label:'🚀 Quick'},panoramic:{label:'🏔️ Panoramic'},sport:{label:'🏁 Sport'}};
 
-var pendingDest=null;
-var searchTmr=null;
-var lastQuery='';
+// State
+var mode='quick', units='km';
+var userPos=null;
+var waypoints=[]; // [{lat,lng,name}] — final destination is always last
+var pendingDest=null; // currently selected dest in input (not yet added)
+var steps=[], stepIdx=0, stepCoords=[];
+var waypointStepBoundaries=[]; // stepIdx values where each waypoint is reached
+var watchId=null, wakeLock=null, searchTmr=null, lastQuery='';
+var speedKmh=0;
+var previewMap=null, routeLayers=[], selectedRouteIdx=0, routeData=[];
+var settingsOpen=false;
+var _slTimer=null;
+var userScrolled=false; // track if user is browsing steps
 
+// GPS
+function initGPS(){
+  if(!navigator.geolocation){setStatus('GPS not available',false);return;}
+  setStatus('Acquiring GPS…',false);
+  watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+}
+function onPos(p){
+  userPos={lat:p.coords.latitude,lng:p.coords.longitude};
+  speedKmh=p.coords.speed!=null?Math.round(p.coords.speed*3.6):0;
+  setStatus('GPS ready',true);
+  updateGoBtn();
+  if(steps.length)onNavGPS();
+}
+function onPosErr(e){setStatus('GPS error: '+e.message,false);}
+function setStatus(msg,ok){
+  document.getElementById('status-text').textContent=msg;
+  document.getElementById('gps-dot').className='gps-dot'+(ok?' ok':'');
+}
+
+// Units
+function setUnit(u){
+  units=u;
+  document.getElementById('unit-km').className='toggle-opt'+(u==='km'?' active':'');
+  document.getElementById('unit-mi').className='toggle-opt'+(u==='mi'?' active':'');
+  document.getElementById('speed-label').textContent=u==='km'?'km/h':'mph';
+  document.getElementById('slb-unit').textContent=u==='km'?'km/h':'mph';
+  if(steps.length){renderSteps();updateBar();}
+  if(routeData.length)renderRouteOptions();
+}
+function fmtDist(km){
+  if(units==='mi'){var mi=km*0.621371;return mi<0.1?Math.round(mi*1760)+' yd':mi.toFixed(1)+' mi';}
+  return km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km';
+}
+function fmtSpeed(kmh){return units==='mi'?Math.round(kmh*0.621371):Math.round(kmh);}
+
+function toggleSettings(){
+  settingsOpen=!settingsOpen;
+  document.getElementById('settings-panel').classList.toggle('hidden',!settingsOpen);
+}
+
+// ── FAVOURITES ───────────────────────────────────────────────
+function loadFavs(){
+  try{return JSON.parse(localStorage.getItem('motonav_favs')||'[]');}catch(e){return[];}
+}
+function saveFavs(favs){
+  try{localStorage.setItem('motonav_favs',JSON.stringify(favs));}catch(e){}
+}
+function renderFavs(){
+  var favs=loadFavs();
+  var el=document.getElementById('favs-row');
+  if(!favs.length){el.innerHTML='<span class="fav-empty">No favourites yet — save a destination below</span>';return;}
+  el.innerHTML=favs.map(function(f,i){
+    return '<div class="fav-chip" data-fidx="'+i+'">'
+      +'<span>'+esc(f.alias)+'</span>'
+      +'<span class="fav-del" data-del="'+i+'">×</span>'
+      +'</div>';
+  }).join('');
+}
+document.getElementById('favs-row').addEventListener('click',function(e){
+  var del=e.target.closest('[data-del]');
+  if(del){
+    var favs=loadFavs(); favs.splice(parseInt(del.dataset.del),1); saveFavs(favs); renderFavs(); return;
+  }
+  var chip=e.target.closest('[data-fidx]');
+  if(chip){
+    var favs=loadFavs(); var f=favs[parseInt(chip.dataset.fidx)];
+    if(f){selectDest(f.lat,f.lng,f.name);}
+  }
+});
+function addToFavourites(lat,lng,name,alias){
+  var favs=loadFavs();
+  // avoid duplicates by coord
+  for(var i=0;i<favs.length;i++){if(Math.abs(favs[i].lat-lat)<0.0001&&Math.abs(favs[i].lng-lng)<0.0001)return;}
+  favs.push({lat:lat,lng:lng,name:name,alias:alias||name.split(',')[0]});
+  saveFavs(favs); renderFavs();
+}
+
+// ── SEARCH ───────────────────────────────────────────────────
 function onDestInput(){
   var q=document.getElementById('dest-input').value.trim();
-  pendingDest=null;
-
+  pendingDest=null; updateGoBtn();
   if(q.length<3){hideResults();return;}
-
   clearTimeout(searchTmr);
-  searchTmr=setTimeout(()=>doSearch(q),300);
+  searchTmr=setTimeout(function(){doSearch(q);},450);
 }
-
 async function doSearch(q){
-  if(q===lastQuery)return;
-  lastQuery=q;
-
+  if(q===lastQuery)return; lastQuery=q;
   var el=document.getElementById('search-results');
   el.classList.remove('hidden');
-  el.innerHTML="Searching...";
-
+  el.innerHTML='<div class="search-result-item" style="color:#777">Searching…</div>';
   try{
-    var r=await fetch(NOMINATIM+'?q='+encodeURIComponent(q)+'&format=json&limit=5');
+    var r=await fetch(NOMINATIM+'?q='+encodeURIComponent(q)+'&format=json&limit=5&addressdetails=1',{headers:{'Accept-Language':'en','User-Agent':'MotoNav/1.6'}});
     var data=await r.json();
-    window._data=data;
-
-    el.innerHTML=data.map((d,i)=>`
-      <div class='search-result-item' data-i='${i}'>
-        <b>${d.name||d.display_name.split(',')[0]}</b><br/>
-        <small>${d.display_name}</small>
-      </div>
-    `).join('');
-
-  }catch(e){
-    el.innerHTML="Search failed";
-  }
+    if(!data.length){el.innerHTML='<div class="search-result-item" style="color:#777">No results found</div>';return;}
+    window._sr=data;
+    el.innerHTML=data.map(function(d,i){
+      return '<div class="search-result-item" data-idx="'+i+'">'
+        +'<div class="res-name">'+esc(d.name||d.display_name.split(',')[0])+'</div>'
+        +'<div class="res-addr">'+esc(d.display_name)+'</div>'
+        +'</div>';
+    }).join('');
+  }catch(e){el.innerHTML='<div class="search-result-item" style="color:#e74c3c">Search failed</div>';}
 }
-
 document.getElementById('search-results').addEventListener('click',function(e){
-  var item=e.target.closest('[data-i]');
-  if(!item||!window._data)return;
-
-  var d=window._data[item.dataset.i];
-  selectDest(d.lat,d.lon,d.display_name);
+  var item=e.target.closest('[data-idx]');
+  if(!item||!window._sr)return;
+  var d=window._sr[parseInt(item.dataset.idx)];
+  if(d)selectDest(d.lat,d.lon,d.display_name);
 });
-
 function selectDest(lat,lng,name){
   pendingDest={lat:+lat,lng:+lng,name:name};
   document.getElementById('dest-input').value=name.split(',')[0];
+  // Show save-as-favourite row — do NOT call hideResults here, the row IS the results panel
   showSaveFavRow(lat,lng,name);
+  updateGoBtn();
 }
-
 function showSaveFavRow(lat,lng,name){
   var el=document.getElementById('search-results');
   el.classList.remove('hidden');
-
-  el.innerHTML=`
-    <div class="save-fav-row">
-      ⭐
-      <input id="fav-alias-input" placeholder="Save favourite name"/>
-      <span id="fav-save-btn">Save</span>
-    </div>
-  `;
-
-  setTimeout(()=>{
-    document.getElementById('fav-save-btn').onclick=function(){
-      hideResults();
-    };
-  },0);
-}
-
-function hideResults(){
-  document.getElementById('search-results').classList.add('hidden');
-}
-
-/* ===================== ONLY REAL FIX ===================== */
-document.addEventListener('click',function(e){
-  if(
-    !e.target.closest('.dest-section') &&
-    !e.target.closest('.favs-section') &&
-    !e.target.closest('.search-results') // 🔥 FIX
-  ){
+  el.innerHTML='<div class="save-fav-row" id="save-fav-row">'
+    +'<span>⭐</span>'
+    +'<input id="fav-alias-input" type="text" placeholder="Save as favourite? Type a name…" autocomplete="off" autocorrect="off" autocapitalize="off"/>'
+    +'<span style="color:#3b82f6;font-size:0.82rem;font-weight:700;white-space:nowrap" id="fav-save-btn">Save</span>'
+    +'</div>';
+  document.getElementById('fav-save-btn').addEventListener('click',function(){
+    var alias=document.getElementById('fav-alias-input').value.trim()||name.split(',')[0];
+    addToFavourites(lat,lng,name,alias);
     hideResults();
+  });
+  // pressing Enter on alias input also saves
+  document.getElementById('fav-alias-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){document.getElementById('fav-save-btn').click();}
+  });
+}
+function hideResults(){document.getElementById('search-results').classList.add('hidden');}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.dest-section')&&!e.target.closest('.favs-section'))hideResults();
+});
+
+// ── WAYPOINTS ────────────────────────────────────────────────
+function updateGoBtn(){
+  var hasDest=pendingDest||waypoints.length>0;
+  var hasGPS=!!userPos;
+  document.getElementById('go-btn').disabled=!(hasDest&&hasGPS);
+  document.getElementById('add-stop-btn').disabled=!pendingDest;
+}
+function addStop(){
+  if(!pendingDest)return;
+  waypoints.push(pendingDest);
+  pendingDest=null;
+  document.getElementById('dest-input').value='';
+  document.getElementById('dest-label').textContent='Add next stop';
+  hideResults();
+  renderWaypoints();
+  updateGoBtn();
+}
+function removeWaypoint(i){
+  waypoints.splice(i,1);
+  if(!waypoints.length)document.getElementById('dest-label').textContent='Destination';
+  renderWaypoints();
+  updateGoBtn();
+}
+function renderWaypoints(){
+  var sec=document.getElementById('waypoints-section');
+  var list=document.getElementById('waypoints-list');
+  if(!waypoints.length){sec.classList.add('hidden');return;}
+  sec.classList.remove('hidden');
+  list.innerHTML=waypoints.map(function(wp,i){
+    var col=WP_COLORS[i%WP_COLORS.length];
+    var label=i===waypoints.length-1?'Final':'Stop '+(i+1);
+    return '<div class="waypoint-row">'
+      +'<div class="wp-num" style="background:'+col+';color:#fff">'+( i+1)+'</div>'
+      +'<div class="wp-label">'+esc(wp.name.split(',')[0])+'</div>'
+      +'<button class="wp-del" onclick="removeWaypoint('+i+')">×</button>'
+      +'</div>';
+  }).join('');
+}
+
+// ── PLAN ROUTE → MAP PREVIEW ─────────────────────────────────
+async function planRoute(){
+  if(!userPos)return;
+  // Gather all points: user → ...waypoints → pendingDest (or last waypoint as final)
+  var allPoints=[{lat:userPos.lat,lng:userPos.lng}].concat(waypoints);
+  if(pendingDest)allPoints.push(pendingDest);
+  if(allPoints.length<2){alert('Please enter a destination.');return;}
+
+  var btn=document.getElementById('go-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Loading…';
+
+  try{
+    var coordStr=allPoints.map(function(p){return p.lng+','+p.lat;}).join(';');
+    // alternatives only make sense for 2-point routes
+    var altParam=allPoints.length===2?'&alternatives=3':'';
+    var url=OSRM[mode]+coordStr+'?steps=true&geometries=geojson&overview=full&annotations=duration'+altParam;
+    var r=await fetch(url);
+    if(!r.ok){var t=await r.text();throw new Error('Routing error '+r.status+': '+t.slice(0,150));}
+    var data=await r.json();
+    if(data.code!=='Ok')throw new Error('No route found: '+(data.message||''));
+    routeData=data.routes;
+    selectedRouteIdx=0;
+    // Store the full waypoints for the confirmed route
+    window._routeAllPoints=allPoints;
+    showMapPreview(allPoints);
+  }catch(e){
+    btn.disabled=false; btn.textContent='Preview Route';
+    alert('Could not get route:\n\n'+e.message);
+  }
+}
+
+function showMapPreview(allPoints){
+  document.getElementById('screen-home').classList.add('hidden');
+  document.getElementById('screen-map').classList.remove('hidden');
+  var finalName=(pendingDest||waypoints[waypoints.length-1]||{name:'Destination'}).name;
+  document.getElementById('map-title').textContent=finalName.split(',')[0];
+  document.getElementById('go-btn').disabled=false;
+  document.getElementById('go-btn').textContent='Preview Route';
+
+  if(!previewMap){
+    previewMap=L.map('preview-map',{zoomControl:false,attributionControl:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(previewMap);
+  } else {
+    routeLayers.forEach(function(l){previewMap.removeLayer(l);});
+    routeLayers=[];
+  }
+
+  routeData.forEach(function(route,i){
+    var coords=route.geometry.coordinates.map(function(c){return[c[1],c[0]];});
+    var line=L.polyline(coords,{color:ROUTE_COLORS[i]||'#888',weight:i===selectedRouteIdx?7:4,opacity:i===selectedRouteIdx?0.95:0.4}).addTo(previewMap);
+    line._ridx=i;
+    line.on('click',function(){selectRouteOption(this._ridx);});
+    routeLayers.push(line);
+  });
+
+  // Waypoint markers
+  allPoints.forEach(function(pt,i){
+    var isStart=i===0, isFinal=i===allPoints.length-1;
+    var col=isStart?'#22c55e':isFinal?'#ef4444':WP_COLORS[(i-1)%WP_COLORS.length];
+    var icon=L.divIcon({html:'<div style="background:'+col+';width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7],className:''});
+    routeLayers.push(L.marker([pt.lat,pt.lng],{icon:icon}).addTo(previewMap));
+  });
+
+  var sc=routeData[0].geometry.coordinates.map(function(c){return[c[1],c[0]];});
+  previewMap.fitBounds(L.latLngBounds(sc),{padding:[32,32]});
+  renderRouteOptions();
+  setTimeout(function(){previewMap.invalidateSize();},120);
+}
+
+function renderRouteOptions(){
+  var el=document.getElementById('route-options');
+  var names=['Fastest','Alternative','Scenic alt.'];
+  var isMulti=routeData[0].legs.length>1;
+  el.innerHTML=routeData.map(function(route,i){
+    var totalDist=route.legs.reduce(function(a,l){return a+l.distance;},0)/1000;
+    var totalDur=Math.round(route.legs.reduce(function(a,l){return a+l.duration;},0)/60);
+    var distStr=fmtDist(totalDist);
+    var durStr=totalDur>=60?Math.floor(totalDur/60)+'h '+(totalDur%60)+'m':totalDur+' min';
+    var title=isMulti?('Route '+(i+1)+' · '+route.legs.length+' stops'):(names[i]||'Route '+(i+1));
+    return '<div class="route-option'+(i===selectedRouteIdx?' selected':'')+'" data-ridx="'+i+'">'
+      +'<div class="route-badge" style="background:'+ROUTE_COLORS[i]+'"></div>'
+      +'<div class="route-info"><div class="ri-title">'+title+'</div>'
+      +'<div class="ri-sub">'+distStr+' &nbsp;·&nbsp; '+durStr+'</div></div></div>';
+  }).join('');
+}
+
+document.getElementById('route-options').addEventListener('click',function(e){
+  var item=e.target.closest('[data-ridx]');
+  if(item)selectRouteOption(parseInt(item.dataset.ridx));
+});
+function selectRouteOption(idx){
+  selectedRouteIdx=idx;
+  routeLayers.forEach(function(l){if(l.setStyle)l.setStyle({weight:l._ridx===idx?7:4,opacity:l._ridx===idx?0.95:0.4});});
+  renderRouteOptions();
+  var coords=routeData[idx].geometry.coordinates.map(function(c){return[c[1],c[0]];});
+  previewMap.fitBounds(L.latLngBounds(coords),{padding:[32,32]});
+}
+function backToHome(){
+  document.getElementById('screen-map').classList.add('hidden');
+  document.getElementById('screen-home').classList.remove('hidden');
+}
+
+// ── CONFIRM ROUTE → NAV ──────────────────────────────────────
+function confirmRoute(){
+  var route=routeData[selectedRouteIdx];
+  var allPoints=window._routeAllPoints||[];
+  var isMulti=route.legs.length>1;
+
+  steps=[];
+  waypointStepBoundaries=[];
+
+  route.legs.forEach(function(leg,legIdx){
+    var boundary=steps.length;
+    if(legIdx>0)waypointStepBoundaries.push(boundary);
+    leg.steps.forEach(function(s){
+      steps.push({
+        instruction:buildInstruction(s),
+        dist:s.distance/1000,
+        svgLarge:makeSVG(s.maneuver.type,s.maneuver.modifier,true),
+        svgSmall:makeSVG(s.maneuver.type,s.maneuver.modifier,false),
+        lat:s.maneuver.location[1],
+        lng:s.maneuver.location[0],
+        legIdx:legIdx
+      });
+    });
+  });
+
+  stepCoords=steps.map(function(s){return{lat:s.lat,lng:s.lng};});
+  stepIdx=0;
+  userScrolled=false;
+
+  var finalPt=allPoints[allPoints.length-1];
+  var finalName=finalPt?finalPt.name:'Destination';
+
+  document.getElementById('nav-mode-label').textContent=MODES[mode].label;
+  document.getElementById('nav-dest-label').textContent=finalName.split(',')[0];
+
+  // Show/hide next-stop cell
+  var nsc=document.getElementById('stat-nextstop-cell');
+  var bar=document.getElementById('nav-bottombar');
+  if(isMulti){
+    nsc.style.display='';
+    bar.className='nav-bottombar cols5';
+  } else {
+    nsc.style.display='none';
+    bar.className='nav-bottombar cols4';
+  }
+
+  document.getElementById('screen-map').classList.add('hidden');
+  document.getElementById('screen-nav').classList.remove('hidden');
+  renderAllSteps();
+  updateBar();
+  acquireWakeLock();
+  fetchSpeedLimit();
+}
+
+// ── RENDER STEPS (full list, scrollable) ─────────────────────
+function renderAllSteps(){
+  var c=document.getElementById('steps-container');
+  var allPoints=window._routeAllPoints||[];
+  var isMulti=waypointStepBoundaries.length>0;
+
+  // Build full list with waypoint separators
+  var html='';
+  var wpIdx=0; // which waypoint separator we're on
+
+  for(var i=0;i<steps.length;i++){
+    // Insert waypoint banner before steps that start a new leg (except leg 0)
+    if(isMulti&&waypointStepBoundaries.indexOf(i)>=0){
+      var wpNum=waypointStepBoundaries.indexOf(i)+1;
+      var wpName=allPoints[wpNum]?allPoints[wpNum].name.split(',')[0]:'Stop '+wpNum;
+      var col=WP_COLORS[(wpNum-1)%WP_COLORS.length];
+      html+='<div class="step-waypoint" data-wp="'+wpNum+'" style="border-color:'+col+';color:'+col+'">'
+        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'
+        +' Waypoint '+wpNum+': '+esc(wpName)+'</div>';
+    }
+
+    // Style based on position relative to current stepIdx
+    var rel=i-stepIdx;
+    var cls='s3';
+    if(rel<0) cls='sdone';
+    else if(rel===0) cls='s0';
+    else if(rel===1) cls='s1';
+    else if(rel===2) cls='s2';
+    var s=steps[i];
+    var d=fmtDist(s.dist);
+    var svg=rel===0?s.svgLarge:s.svgSmall;
+    var opacity=rel<0?0.3:1;
+    html+='<div class="step-card '+cls+'" data-sidx="'+i+'" style="opacity:'+opacity+'">'
+      +'<div>'+svg+'</div>'
+      +'<div class="step-body">'
+      +'<div class="step-dist">'+(rel===0?'Now · ':rel<0?'Done · ':'')+d+'</div>'
+      +'<div class="step-instr">'+s.instruction+'</div>'
+      +'</div></div>';
+  }
+  c.innerHTML=html;
+
+  // Scroll to current step
+  scrollToCurrentStep(false);
+}
+
+function scrollToCurrentStep(smooth){
+  var c=document.getElementById('steps-container');
+  var curr=c.querySelector('[data-sidx="'+stepIdx+'"]');
+  if(curr){
+    curr.scrollIntoView({behavior:smooth?'smooth':'auto',block:'start'});
+  }
+}
+
+// When GPS advances step — re-render styling and snap back if not scrolled
+function onStepAdvance(){
+  renderAllSteps(); // re-render with updated styles
+  if(!userScrolled){
+    scrollToCurrentStep(true);
+  }
+}
+
+// ── BOTTOM BAR ───────────────────────────────────────────────
+function updateBar(){
+  var totalRem=steps.slice(stepIdx).reduce(function(a,s){return a+s.dist;},0);
+  document.getElementById('stat-dist').textContent=fmtDist(totalRem);
+
+  // Next stop distance
+  if(waypointStepBoundaries.length>0){
+    // Find which boundary is next
+    var nextBoundary=-1;
+    for(var i=0;i<waypointStepBoundaries.length;i++){
+      if(waypointStepBoundaries[i]>stepIdx){nextBoundary=waypointStepBoundaries[i];break;}
+    }
+    if(nextBoundary>-1){
+      var nextStopRem=steps.slice(stepIdx,nextBoundary).reduce(function(a,s){return a+s.dist;},0);
+      document.getElementById('stat-nextstop').textContent=fmtDist(nextStopRem);
+    } else {
+      document.getElementById('stat-nextstop').textContent=fmtDist(totalRem);
+    }
+  }
+
+  var avg=speedKmh>15?speedKmh:65;
+  var eta=new Date(Date.now()+(totalRem/avg)*3600000);
+  document.getElementById('stat-eta').textContent=eta.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('stat-speed').textContent=fmtSpeed(speedKmh);
+}
+
+// ── GPS DURING NAV ────────────────────────────────────────────
+function onNavGPS(){
+  updateBar();
+  if(stepIdx>=steps.length-1)return;
+  var next=stepCoords[stepIdx+1];
+  if(!next)return;
+  if(haversine(userPos.lat,userPos.lng,next.lat,next.lng)<ADVANCE_M){
+    stepIdx++;
+    userScrolled=false; // snap back on each real GPS advance
+    onStepAdvance();
+    updateBar();
+    fetchSpeedLimit();
+    if(stepIdx>=steps.length-1)showArrived();
+  }
+}
+
+// Detect user scrolling in steps container
+document.getElementById('steps-container').addEventListener('scroll',function(){
+  // If scrolled away from top, mark as user-scrolled
+  if(this.scrollTop>60) userScrolled=true;
+  else userScrolled=false;
+},true);
+
+// ── SPEED LIMIT ───────────────────────────────────────────────
+function fetchSpeedLimit(){
+  if(!userPos)return;
+  clearTimeout(_slTimer);
+  _slTimer=setTimeout(async function(){
+    try{
+      var q='[out:json][timeout:6];way(around:30,'+userPos.lat+','+userPos.lng+')[highway][maxspeed];out 1;';
+      var r=await fetch(OVERPASS+'?data='+encodeURIComponent(q));
+      var d=await r.json();
+      if(d.elements&&d.elements.length){
+        var ms=d.elements[0].tags.maxspeed||'';
+        var num=parseInt(ms);
+        if(!isNaN(num)&&num>0){
+          var isMph=ms.toLowerCase().indexOf('mph')>=0;
+          var kmh=isMph?Math.round(num*1.60934):num;
+          document.getElementById('slb-num').textContent=units==='mi'?Math.round(kmh*0.621371):kmh;
+          document.getElementById('slb-unit').textContent=units==='mi'?'mph':'km/h';
+          document.getElementById('speed-limit-badge').classList.remove('gone');
+        }
+      }
+    }catch(e){}
+  },2500);
+}
+
+// ── SVG TURN ICONS ────────────────────────────────────────────
+function makeSVG(type,mod,large){
+  var sz=large?68:40, sw=large?7:5;
+  var col=large?'#111':'#ddd', bg=large?'#f0f0f0':'#2a2a2e';
+  if(type==='arrive'){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 80 80"><circle cx="40" cy="40" r="38" fill="'+bg+'"/>'
+      +'<line x1="40" y1="10" x2="40" y2="55" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round"/>'
+      +'<circle cx="40" cy="65" r="5" fill="'+col+'"/></svg>';
+  }
+  if(type==='roundabout'||type==='rotary'){
+    return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 80 80"><circle cx="40" cy="40" r="38" fill="'+bg+'"/>'
+      +'<circle cx="40" cy="40" r="16" fill="none" stroke="'+col+'" stroke-width="'+sw+'"/>'
+      +'<path d="M40 16 A24 24 0 1 1 64 40" fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round"/>'
+      +'<polygon points="67,32 64,46 56,38" fill="'+col+'"/></svg>';
+  }
+  var m=mod||'straight';
+  var paths={
+    'straight':     'M40 68 L40 12 M40 12 L28 28 M40 12 L52 28',
+    'slight right': 'M28 68 Q28 40 58 14 M58 14 L44 16 M58 14 L56 30',
+    'right':        'M24 68 L24 40 Q24 20 40 20 Q58 20 58 8 M58 8 L46 14 M58 8 L62 22',
+    'sharp right':  'M24 68 L24 44 Q24 16 62 14 M62 14 L50 8 M62 14 L66 28',
+    'slight left':  'M52 68 Q52 40 22 14 M22 14 L36 16 M22 14 L24 30',
+    'left':         'M56 68 L56 40 Q56 20 40 20 Q22 20 22 8 M22 8 L34 14 M22 8 L18 22',
+    'sharp left':   'M56 68 L56 44 Q56 16 18 14 M18 14 L30 8 M18 14 L14 28',
+    'uturn':        'M55 68 L55 44 Q55 18 40 18 Q22 18 22 36 L22 48 M22 48 L14 36 M22 48 L30 36'
+  };
+  var p=paths[m]||paths['straight'];
+  return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 80 80"><circle cx="40" cy="40" r="38" fill="'+bg+'"/>'
+    +'<path d="'+p+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+// ── INSTRUCTIONS ─────────────────────────────────────────────
+function buildInstruction(step){
+  var type=step.maneuver.type,mod=step.maneuver.modifier||'',name=step.name||'';
+  var road=name?' onto '+name:'';
+  if(type==='depart')return'Head '+(mod?mod+' ':'')+(name?'on '+name:'forward');
+  if(type==='arrive')return'You have arrived';
+  if(type==='roundabout'||type==='rotary'){var ex=step.maneuver.exit?' — exit '+step.maneuver.exit:'';return'Enter roundabout'+ex;}
+  if(type==='turn'||type==='new name'||type==='end of road'){
+    if(mod==='straight')return'Continue straight'+road;
+    if(mod==='slight right')return'Bear right'+road;
+    if(mod==='right')return'Turn right'+road;
+    if(mod==='sharp right')return'Sharp right'+road;
+    if(mod==='uturn')return'Make a U-turn';
+    if(mod==='sharp left')return'Sharp left'+road;
+    if(mod==='left')return'Turn left'+road;
+    if(mod==='slight left')return'Bear left'+road;
+  }
+  if(type==='merge')return'Merge'+(mod?' '+mod:'')+road;
+  if(type==='fork')return'Keep '+(mod.indexOf('left')>=0?'left':'right')+' at fork'+road;
+  if(type==='continue')return'Continue'+road;
+  if(type==='on ramp')return'Take the ramp'+(mod?' '+mod:'')+road;
+  if(type==='off ramp')return'Take the exit'+road;
+  return(type+(mod?' '+mod:'')+road).trim();
+}
+
+// ── ARRIVED / STOP ────────────────────────────────────────────
+function showArrived(){
+  var nav=document.getElementById('screen-nav');
+  if(nav.querySelector('.overlay'))return;
+  var allPoints=window._routeAllPoints||[];
+  var finalName=allPoints.length?allPoints[allPoints.length-1].name.split(',')[0]:'Destination';
+  var o=document.createElement('div'); o.className='overlay';
+  o.innerHTML='<div class="overlay-icon">🏁</div><div class="overlay-title">You arrived!</div>'
+    +'<div class="overlay-sub">'+esc(finalName)+'</div>'
+    +'<button class="overlay-btn" onclick="stopNavigation()">Back to home</button>';
+  nav.appendChild(o);
+}
+function stopNavigation(){
+  steps=[];stepIdx=0;waypoints=[];pendingDest=null;routeData=[];
+  waypointStepBoundaries=[];userScrolled=false;
+  window._routeAllPoints=null;
+  document.getElementById('dest-input').value='';
+  document.getElementById('dest-label').textContent='Destination';
+  document.getElementById('go-btn').disabled=true;
+  document.getElementById('go-btn').textContent='Preview Route';
+  document.getElementById('screen-nav').querySelectorAll('.overlay').forEach(function(e){e.remove();});
+  document.getElementById('speed-limit-badge').classList.add('gone');
+  document.getElementById('screen-home').classList.remove('hidden');
+  document.getElementById('screen-nav').classList.add('hidden');
+  renderWaypoints();
+  if(wakeLock){wakeLock.release();wakeLock=null;}
+}
+
+// ── MISC ─────────────────────────────────────────────────────
+function selectMode(m,el){
+  mode=m;
+  document.querySelectorAll('.mode-card').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+}
+async function acquireWakeLock(){
+  try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+  document.addEventListener('visibilitychange',async function(){
+    if(wakeLock&&document.visibilityState==='visible')try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+  });
+}
+function haversine(la1,lo1,la2,lo2){
+  var R=6371000,rd=Math.PI/180,dLa=(la2-la1)*rd,dLo=(lo2-lo1)*rd;
+  var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(la1*rd)*Math.cos(la2*rd)*Math.sin(dLo/2)*Math.sin(dLo/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// Tap current step to advance (testing)
+document.addEventListener('click',function(e){
+  if(e.target.closest('.step-card.s0')&&steps.length){
+    if(stepIdx<steps.length-1){stepIdx++;userScrolled=false;onStepAdvance();updateBar();fetchSpeedLimit();}
+    else showArrived();
   }
 });
-/* ========================================================= */
 
+renderFavs();
+initGPS();
 </script>
-
 </body>
 </html>
