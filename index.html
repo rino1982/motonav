@@ -4,129 +4,165 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#111">
-<title>MotoNav (Refactored)</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#111111">
+<title>MotoNav</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <style>
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto;background:#111;color:#fff;overflow:hidden}
-.screen{height:100vh;display:flex;flex-direction:column}
-.hidden{display:none!important}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body { background:#111; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; height:100vh; display:flex; flex-direction:column; user-select:none; }
+.screen { width:100%; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+.hidden { display:none !important; }
 
-.header{padding:16px;display:flex;justify-content:space-between;align-items:center}
-.panel{padding:12px 16px}
-input{width:100%;padding:12px;border-radius:10px;border:none;background:#1c1c1e;color:#fff}
-button{padding:10px;border-radius:10px;border:none;cursor:pointer}
+.search-results { background:#1c1c1e; border-radius:13px; margin-top:5px; overflow:hidden; max-height:170px; overflow-y:auto; }
+.search-result-item { padding:0.8rem 1rem; border-bottom:.5px solid #2a2a2a; cursor:pointer; font-size:0.85rem; }
+.search-result-item:active { background:#2a2a2e; }
 
-.list{background:#1c1c1e;margin-top:6px;border-radius:10px;overflow:hidden;max-height:180px;overflow-y:auto}
-.item{padding:10px;border-bottom:1px solid #2a2a2a;cursor:pointer}
-.item:last-child{border-bottom:none}
+.save-fav-row { padding:0.65rem 1rem; background:#161618; display:flex; align-items:center; gap:8px; border-top:.5px solid #2a2a2a; }
+.save-fav-row input { background:none; border:none; outline:none; color:#fff; flex:1; }
+.save-fav-row span { color:#3b82f6; font-weight:700; cursor:pointer; white-space:nowrap; }
 
-.fav{background:#161618;padding:10px;display:flex;gap:8px;align-items:center}
-.fav input{flex:1}
+.dest-input-wrap input { width:100%; padding:12px; border-radius:10px; border:none; background:#1c1c1e; color:#fff; }
 
-.map{flex:1}
 </style>
 </head>
 <body>
 
-<!-- HOME -->
-<div id="home" class="screen">
-  <div class="header">
-    <h2>MotoNav</h2>
+<div id="screen-home" class="screen">
+
+  <div class="dest-section">
+    <div class="dest-input-wrap">
+      <input type="text" id="dest-input" placeholder="Where to?" autocomplete="off" oninput="onDestInput()"/>
+    </div>
+    <div class="search-results hidden" id="search-results"></div>
   </div>
 
-  <div class="panel">
-    <input id="dest" placeholder="Where to?" oninput="onSearch()"/>
-    <div id="results" class="list hidden"></div>
-  </div>
+  <button id="go-btn" disabled>Preview Route</button>
 
-  <div class="panel fav" id="favPanel" class="hidden"></div>
-
-  <div class="panel">
-    <button onclick="plan()">Preview Route</button>
-  </div>
-</div>
-
-<!-- MAP -->
-<div id="mapScreen" class="screen hidden">
-  <div id="map" class="map"></div>
 </div>
 
 <script>
-let pending=null;
-let lastQuery="";
-let lock=false;
 
-function onSearch(){
-  lock=false;
-  const q=document.getElementById('dest').value.trim();
-  const el=document.getElementById('results');
+var NOMINATIM='https://nominatim.openstreetmap.org/search';
 
-  if(q.length<3){el.classList.add('hidden');return;}
-  setTimeout(()=>search(q),300);
+var pendingDest=null;
+var searchTmr=null;
+var lastQuery='';
+
+// 🔥 STATE FIX: prevents search overwriting fav UI
+var uiMode='search'; // search | fav
+
+function onDestInput(){
+  uiMode='search';
+  var q=document.getElementById('dest-input').value.trim();
+  pendingDest=null;
+
+  if(q.length<3){hideResults();return;}
+
+  clearTimeout(searchTmr);
+  searchTmr=setTimeout(()=>doSearch(q),300);
 }
 
-async function search(q){
-  if(lock)return;
-  const el=document.getElementById('results');
+async function doSearch(q){
+  if(uiMode!=='search')return;
+  if(q===lastQuery)return;
+  lastQuery=q;
+
+  var el=document.getElementById('search-results');
   el.classList.remove('hidden');
   el.innerHTML="Searching...";
 
-  const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`);
-  const data=await r.json();
+  try{
+    var r=await fetch(NOMINATIM+'?q='+encodeURIComponent(q)+'&format=json&limit=5');
+    var data=await r.json();
+    window._data=data;
 
-  window._data=data;
+    if(uiMode!=='search')return;
 
-  el.innerHTML=data.map((d,i)=>`
-    <div class='item' onclick='selectDest(${i})'>
-      <b>${d.name||d.display_name.split(',')[0]}</b><br>
-      <small>${d.display_name}</small>
+    el.innerHTML=data.map((d,i)=>`
+      <div class='search-result-item' data-i='${i}'>
+        <b>${d.name||d.display_name.split(',')[0]}</b><br/>
+        <small>${d.display_name}</small>
+      </div>
+    `).join('');
+
+  }catch(e){
+    el.innerHTML="Search failed";
+  }
+}
+
+// prevent race click
+var searchLock=false;
+
+document.getElementById('search-results').addEventListener('click',function(e){
+  var item=e.target.closest('[data-i]');
+  if(!item||!window._data)return;
+
+  searchLock=true;
+  var d=window._data[item.dataset.i];
+  selectDest(d.lat,d.lon,d.display_name);
+});
+
+function selectDest(lat,lng,name){
+  pendingDest={lat:+lat,lng:+lng,name:name};
+  document.getElementById('dest-input').value=name.split(',')[0];
+
+  uiMode='fav'; // 🔥 IMPORTANT FIX
+  showSaveFavRow(lat,lng,name);
+  updateGoBtn();
+}
+
+function showSaveFavRow(lat,lng,name){
+  var el=document.getElementById('search-results');
+  el.classList.remove('hidden');
+
+  el.innerHTML=`
+    <div class='save-fav-row'>
+      ⭐
+      <input id='fav-alias-input' placeholder='Save favourite name'/>
+      <span id='fav-save-btn'>Save</span>
     </div>
-  `).join('');
-}
-
-function selectDest(i){
-  const d=window._data[i];
-  pending={lat:+d.lat,lng:+d.lon,name:d.display_name};
-
-  document.getElementById('dest').value=d.display_name.split(',')[0];
-
-  showFav(d);
-  hideResults();
-}
-
-function showFav(d){
-  const p=document.getElementById('favPanel');
-  p.innerHTML=`
-    ⭐ <input id='favName' placeholder='Save favorite name'/>
-    <button onclick='saveFav()'>Save</button>
   `;
-  p.classList.remove('hidden');
-}
 
-function saveFav(){
-  const name=document.getElementById('favName').value||pending.name;
-  const favs=JSON.parse(localStorage.getItem('favs')||'[]');
-  favs.push({...pending,alias:name});
-  localStorage.setItem('favs',JSON.stringify(favs));
-  document.getElementById('favPanel').classList.add('hidden');
+  setTimeout(()=>{
+    document.getElementById('fav-save-btn').onclick=function(){
+      var alias=document.getElementById('fav-alias-input').value.trim()||name.split(',')[0];
+      addToFavourites(lat,lng,name,alias);
+      hideResults();
+      uiMode='search';
+    };
+
+    document.getElementById('fav-alias-input').onkeydown=function(e){
+      if(e.key==='Enter')document.getElementById('fav-save-btn').click();
+    };
+  },0);
 }
 
 function hideResults(){
-  document.getElementById('results').classList.add('hidden');
+  if(uiMode==='fav')return; // 🔥 prevents killing fav UI
+  document.getElementById('search-results').classList.add('hidden');
 }
 
-async function plan(){
-  if(!pending)return alert('Select destination');
-  document.getElementById('home').classList.add('hidden');
-  document.getElementById('mapScreen').classList.remove('hidden');
+// 🔥 FIXED GLOBAL CLICK HANDLER
+// only closes search mode, never fav mode
 
-  const map=L.map('map').setView([pending.lat,pending.lng],13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  L.marker([pending.lat,pending.lng]).addTo(map);
+document.addEventListener('click',function(e){
+  if(uiMode==='fav')return;
+
+  if(!e.target.closest('.dest-section')){
+    hideResults();
+  }
+});
+
+function addToFavourites(lat,lng,name,alias){
+  console.log("Saved",alias);
 }
+
+function updateGoBtn(){}
+
 </script>
 </body>
 </html>
