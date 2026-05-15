@@ -177,6 +177,12 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
         <div class="toggle-opt" id="theme-light" onclick="setTheme('light')">☀️ Light</div>
       </div>
     </div>
+    <div class="settings-row">
+      <label>Voice</label>
+      <select id="voice-select" onchange="setVoice(this.value)" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.75rem;max-width:190px;cursor:pointer;">
+        <option value="">Default</option>
+      </select>
+    </div>
   </div>
 
   <p class="section-label">Ride mode</p>
@@ -321,6 +327,51 @@ function toggleSettings(){
 }
 
 // VOICE
+var selectedVoice=null;
+
+function loadVoices(){
+  if(!synth)return;
+  var voices=synth.getVoices();
+  if(!voices.length)return;
+  var sel=document.getElementById('voice-select');
+  var prev=sel.value;
+  sel.innerHTML='<option value="">Default</option>';
+  // Filter to English voices and sort: en-GB first, then en-US, then others
+  var en=voices.filter(function(v){return v.lang.indexOf('en')===0;});
+  en.sort(function(a,b){
+    var sa=a.lang==='en-GB'?0:a.lang==='en-US'?1:2;
+    var sb=b.lang==='en-GB'?0:b.lang==='en-US'?1:2;
+    return sa-sb||a.name.localeCompare(b.name);
+  });
+  en.forEach(function(v){
+    var opt=document.createElement('option');
+    opt.value=v.name;
+    // Label: show name + lang, trim verbose platform prefixes
+    var label=v.name.replace('Microsoft ','').replace('Google ','');
+    opt.textContent=label+' ('+v.lang+')';
+    sel.appendChild(opt);
+  });
+  if(prev)sel.value=prev;
+  // Restore saved voice
+  var saved=localStorage.getItem('motonav_voice');
+  if(saved){sel.value=saved;selectedVoice=voices.find(function(v){return v.name===saved;})||null;}
+}
+function setVoice(name){
+  selectedVoice=name?synth.getVoices().find(function(v){return v.name===name;})||null:null;
+  try{localStorage.setItem('motonav_voice',name);}catch(e){}
+  // Preview the selected voice
+  if(!muted){
+    synth.cancel();
+    var u=new SpeechSynthesisUtterance('Voice selected');
+    if(selectedVoice)u.voice=selectedVoice;
+    synth.speak(u);
+  }
+}
+// Voices load asynchronously on some browsers
+if(synth){
+  loadVoices();
+  if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=loadVoices;
+}
 function toggleMute(){
   muted=!muted;
   var btn=document.getElementById('mute-btn');
@@ -332,7 +383,8 @@ function speak(text){
   if(muted||!synth)return;
   synth.cancel();
   var u=new SpeechSynthesisUtterance(text);
-  u.rate=1.0; u.pitch=1.0; u.volume=1.0;
+  if(selectedVoice)u.voice=selectedVoice;
+  u.rate=1.0;u.pitch=1.0;u.volume=1.0;
   synth.speak(u);
 }
 function speakStep(idx){
@@ -341,7 +393,7 @@ function speakStep(idx){
   if(!steps[idx])return;
   var s=steps[idx];
   var dist=s.dist<1?Math.round(s.dist*1000)+' metres':s.dist.toFixed(1)+' kilometres';
-  if(units==='mi'){dist=s.dist<0.1?Math.round(s.dist*1760)+' yards':( s.dist*0.621371).toFixed(1)+' miles';}
+  if(units==='mi'){dist=s.dist<0.1?Math.round(s.dist*1760)+' yards':(s.dist*0.621371).toFixed(1)+' miles';}
   speak('In '+dist+', '+steps[idx].instruction);
 }
 
