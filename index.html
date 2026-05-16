@@ -270,6 +270,45 @@ var OSRM={
   sport:'https://router.project-osrm.org/route/v1/driving/'
 };
 var MODES={quick:{label:'🚀 Quick'},panoramic:{label:'🏔️ Panoramic'},sport:{label:'🏁 Sport'}};
+var LOG_URL='https://script.google.com/macros/s/AKfycbzpE55hqeYWL52czyLJZBxZx05AYqqZaar0DB8bHfcfUjPbFkTbAwGyC4TVmCqERT-Wfw/exec';
+var _logStartTime=null, _logTotalSteps=0;
+
+function logEvent(event, extra){
+  try{
+    var allPoints=window._routeAllPoints||[];
+    var finalPt=allPoints.length?allPoints[allPoints.length-1]:null;
+    var region='';
+    if(userPos){
+      // Approximate region from coords — just country-level, no precise location
+      fetch('https://nominatim.openstreetmap.org/reverse?lat='+userPos.lat+'&lon='+userPos.lng+'&format=json&zoom=5')
+        .then(function(r){return r.json();})
+        .then(function(d){
+          region=(d.address&&d.address.country)||'';
+          sendLog(event,extra,finalPt,region);
+        }).catch(function(){sendLog(event,extra,finalPt,'');});
+    } else {
+      sendLog(event,extra,finalPt,'');
+    }
+  }catch(e){}
+}
+function sendLog(event,extra,finalPt,region){
+  try{
+    var payload={
+      version:'1.7',
+      event:event,
+      mode:mode,
+      destination:finalPt?finalPt.name.split(',')[0]:'',
+      distance:extra&&extra.distance!==undefined?extra.distance:'',
+      stepsDone:stepIdx,
+      totalSteps:_logTotalSteps,
+      completedPct:_logTotalSteps>0?Math.round((stepIdx/_logTotalSteps)*100)+'%':'',
+      duration:_logStartTime?Math.round((Date.now()-_logStartTime)/1000)+'s':'',
+      region:region,
+      multiStop:(window._routeAllPoints||[]).length>2
+    };
+    fetch(LOG_URL,{method:'POST',body:JSON.stringify(payload),mode:'no-cors'});
+  }catch(e){}
+}
 
 var mode='quick', units='km', themeMode='dark';
 var userPos=null;
@@ -631,6 +670,7 @@ function confirmRoute(){
   });
   stepCoords=steps.map(function(s){return{lat:s.lat,lng:s.lng};});
   stepIdx=0;userScrolled=false;lastSpokenStep=-1;
+  _logStartTime=Date.now();_logTotalSteps=steps.length;
   var finalPt=allPoints[allPoints.length-1];
   document.getElementById('nav-mode-label').textContent=MODES[mode].label;
   document.getElementById('nav-dest-label').textContent=finalPt?finalPt.name.split(',')[0]:'';
@@ -641,6 +681,7 @@ function confirmRoute(){
   document.getElementById('screen-nav').classList.remove('hidden');
   renderAllSteps();updateBar();acquireWakeLock();fetchSpeedLimit();
   speakStep(0);
+  logEvent('route_started',{distance:Math.round(routeData[selectedRouteIdx].legs.reduce(function(a,l){return a+l.distance;},0)/100)/10});
 }
 
 // RECALCULATION
@@ -857,6 +898,7 @@ function buildInstruction(step){
 function showArrived(){
   if(synth)synth.cancel();
   speak('You have arrived at your destination');
+  logEvent('route_completed',{});
   var nav=document.getElementById('screen-nav');
   if(nav.querySelector('.overlay'))return;
   var allPoints=window._routeAllPoints||[];
@@ -869,6 +911,7 @@ function showArrived(){
 }
 function stopNavigation(){
   if(synth)synth.cancel();
+  if(steps.length&&stepIdx<steps.length-1)logEvent('route_abandoned',{});
   steps=[];stepIdx=0;waypoints=[];pendingDest=null;routeData=[];
   waypointStepBoundaries=[];userScrolled=false;lastSpokenStep=-1;
   window._routeAllPoints=null;
