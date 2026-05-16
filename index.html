@@ -1010,11 +1010,16 @@ async function submitFeedback(){
   var btn=document.getElementById('fb-submit-btn');
   btn.textContent='Sending…';btn.disabled=true;
   try{
-    var feedbackText=(selectedFbTag?'['+selectedFbTag+'] ':'')+text;
-    await new Promise(function(resolve){
-      logEvent('feedback',{feedback:feedbackText});
-      setTimeout(resolve,800);
-    });
+    var feedbackText=text;
+    var payload={
+      version:'1.7', event:'feedback', mode:mode,
+      destination:'', distance:'', stepsDone:'', totalSteps:'',
+      completedPct:'', duration:'',
+      region:selectedFbTag||'',
+      multiStop:false,
+      feedback:feedbackText
+    };
+    fetch(LOG_URL,{method:'POST',body:JSON.stringify(payload),mode:'no-cors'});
     document.getElementById('fb-status').textContent='✅ Thanks for your feedback!';
     document.getElementById('fb-status').style.color='#2ecc71';
     setTimeout(closeFeedback,1500);
